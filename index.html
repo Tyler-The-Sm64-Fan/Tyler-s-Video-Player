@@ -30,7 +30,6 @@
             position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
             background: rgba(0,0,0,0.7); color: white; padding: 8px 16px;
             border-radius: 5px; font-weight: bold; z-index: 100; opacity: 0;
-            /* TRANSITION REMOVED */
             border: 1px solid var(--retro-red);
             pointer-events: none;
         }
@@ -52,7 +51,6 @@
             position: relative; overflow: hidden; border: 2px solid #555; aspect-ratio: 16 / 9;
         }
 
-        /* TRANSITIONS REMOVED FROM VIDEO FILTERS */
         video { width: 100%; height: 100%; cursor: pointer; }
         .res-144 { filter: blur(4px) contrast(1.2); transform: scale(1.02); }
         .res-480 { filter: blur(1px); }
@@ -78,7 +76,6 @@
             border-bottom: var(--win-shadow); border-right: var(--win-shadow);
             padding: 5px; z-index: 40; width: 220px; display: none;
             box-shadow: 4px 4px 10px rgba(0,0,0,0.5);
-            /* NO ANIMATION */
         }
 
         .menu-item {
@@ -95,7 +92,6 @@
             padding: 10px 15px; gap: 10px;
             position: absolute; bottom: 0; left: 0; right: 0;
             z-index: 20; border-top: 1px solid #fff;
-            /* TRANSITION REMOVED - INSTANT APPEARANCE */
         }
         .controls.hidden { display: none; }
 
@@ -180,9 +176,9 @@
         <div class="menu-item">
             Animation
             <select id="animSelect">
-                <option value="none">None</option>
                 <option value="smooth">Smooth</option>
                 <option value="skip">Skip</option>
+                <option value="none">None</option>
             </select>
         </div>
         <div class="menu-item" onclick="location.reload()">Reset Player</div>
@@ -257,25 +253,33 @@
         const mode = animSelect.value;
         const percent = pos * 100;
 
-        if (mode !== 'none') {
-            progFill.style.width = `${percent}%`;
-            handle.style.left = `${percent}%`;
-        }
+        // Visual update while dragging
+        progFill.style.width = `${percent}%`;
+        handle.style.left = `${percent}%`;
+
+        // Video update while dragging if smooth
         if (mode === 'smooth') {
             video.currentTime = pos * video.duration;
         }
     }
 
-    progCont.addEventListener('mousedown', (e) => { isDragging = true; updateProgress(e); });
-    window.addEventListener('mousemove', (e) => { if (isDragging) updateProgress(e); });
-    window.addEventListener('mouseup', () => { 
+    // Mouse & Touch events for DRAGGING
+    const startDrag = (e) => { isDragging = true; updateProgress(e); };
+    const doDrag = (e) => { if (isDragging) { e.preventDefault(); updateProgress(e); } };
+    const stopDrag = () => { 
         if (isDragging && animSelect.value !== 'smooth') {
             video.currentTime = pendingPos * video.duration;
-            progFill.style.width = `${pendingPos * 100}%`;
-            handle.style.left = `${pendingPos * 100}%`;
         }
         isDragging = false; 
-    });
+    };
+
+    progCont.addEventListener('mousedown', startDrag);
+    window.addEventListener('mousemove', doDrag);
+    window.addEventListener('mouseup', stopDrag);
+
+    progCont.addEventListener('touchstart', startDrag, {passive: false});
+    window.addEventListener('touchmove', doDrag, {passive: false});
+    window.addEventListener('touchend', stopDrag);
 
     video.addEventListener('timeupdate', () => {
         if (!isDragging && video.duration) {
